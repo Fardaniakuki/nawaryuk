@@ -3,9 +3,8 @@ const path = require('path');
 
 const sequelize = new Sequelize({
     dialect: 'sqlite',
-    // process.cwd() = Folder paling luar project kamu
-    // Lalu masuk ke folder 'backend' dan cari 'database.sqlite'
-    storage: path.join(process.cwd(), 'backend', 'database.sqlite'),
+    // process.cwd() akan menunjuk ke folder utama project kamu di Vercel
+    storage: path.join(process.cwd(), 'backend', 'database.sqlite'), 
     logging: false,
 });
 
