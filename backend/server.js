@@ -1,11 +1,15 @@
+// 1. Pancing driver sqlite3 agar terbaca oleh Vercel Serverless
+require('sqlite3'); 
 require('dotenv').config();
+
 const express = require('express');
 const cors = require('cors');
+const path = require('path');
 const { sequelize, User } = require('./src/models');
 
 const app = express();
 
-// Konfigurasi CORS agar bisa diakses dari domain Vercel maupun Localhost
+// 2. Konfigurasi CORS (Sesuaikan dengan domain Vercel kamu)
 app.use(cors({
     origin: '*', 
     methods: ['GET', 'POST', 'PUT', 'DELETE'],
@@ -14,7 +18,7 @@ app.use(cors({
 
 app.use(express.json());
 
-// Routes API
+// 3. Routes API
 app.use('/api/auth', require('./src/routes/auth'));
 app.use('/api/barangs', require('./src/routes/barangs'));
 app.use('/api/lelangs', require('./src/routes/lelangs'));
@@ -22,9 +26,14 @@ app.use('/api/penawarans', require('./src/routes/penawarans'));
 app.use('/api/pembayarans', require('./src/routes/pembayarans'));
 app.use('/api/laporans', require('./src/routes/laporans'));
 
+// Route bantuan untuk cek status API di browser
+app.get('/api/health', (req, res) => {
+    res.json({ status: 'OK', message: 'NawarYuk API is running' });
+});
+
 const PORT = process.env.PORT || 5001;
 
-// Fungsi Seed Data (Membuat akun default jika database kosong)
+// 4. Fungsi Seed Data (Membuat akun default jika database kosong)
 const seedData = async () => {
     try {
         const count = await User.count();
@@ -39,14 +48,14 @@ const seedData = async () => {
     }
 };
 
-// Inisialisasi Database
+// 5. Inisialisasi Database
 const startServer = async () => {
     try {
+        // Force sync hanya di development, di Vercel pakai sync biasa
         await sequelize.sync();
         console.log('📦 SQLite database synced');
         await seedData();
         
-        // Cek apakah sedang berjalan di Vercel atau Lokal
         // Vercel tidak butuh app.listen, tapi Lokal butuh.
         if (process.env.NODE_ENV !== 'production' && !process.env.VERCEL) {
             app.listen(PORT, () => console.log(`🚀 NawarYuk API running on port ${PORT}`));
@@ -59,5 +68,5 @@ const startServer = async () => {
 // Jalankan inisialisasi
 startServer();
 
-// PENTING: Export app agar Vercel bisa menjalankan ini sebagai Serverless Function
+// 6. PENTING: Export app agar Vercel bisa menjalankan ini sebagai Serverless Function
 module.exports = app;
