@@ -4,9 +4,17 @@ const cors = require('cors');
 const { sequelize, User } = require('./src/models');
 
 const app = express();
-app.use(cors());
+
+// Konfigurasi CORS agar bisa diakses dari domain Vercel maupun Localhost
+app.use(cors({
+    origin: '*', 
+    methods: ['GET', 'POST', 'PUT', 'DELETE'],
+    allowedHeaders: ['Content-Type', 'Authorization']
+}));
+
 app.use(express.json());
 
+// Routes API
 app.use('/api/auth', require('./src/routes/auth'));
 app.use('/api/barangs', require('./src/routes/barangs'));
 app.use('/api/lelangs', require('./src/routes/lelangs'));
@@ -16,21 +24,40 @@ app.use('/api/laporans', require('./src/routes/laporans'));
 
 const PORT = process.env.PORT || 5001;
 
+// Fungsi Seed Data (Membuat akun default jika database kosong)
 const seedData = async () => {
-    const count = await User.count();
-    if (count === 0) {
-        await User.create({ nama: 'Administrator', username: 'admin', password: 'admin123', role: 'admin' });
-        await User.create({ nama: 'Petugas Lelang', username: 'petugas', password: 'petugas123', role: 'petugas', alamat: 'Jl. Merdeka No. 1' });
-        await User.create({ nama: 'Budi Santoso', username: 'budi', password: 'budi123', role: 'masyarakat', alamat: 'Jl. Mawar No. 5', noTelpon: '081234567890' });
-        console.log('✅ Seed data created');
-        console.log('   Admin: admin / admin123');
-        console.log('   Petugas: petugas / petugas123');
-        console.log('   Masyarakat: budi / budi123');
+    try {
+        const count = await User.count();
+        if (count === 0) {
+            await User.create({ nama: 'Administrator', username: 'admin', password: 'admin123', role: 'admin' });
+            await User.create({ nama: 'Petugas Lelang', username: 'petugas', password: 'petugas123', role: 'petugas', alamat: 'Jl. Merdeka No. 1' });
+            await User.create({ nama: 'Budi Santoso', username: 'budi', password: 'budi123', role: 'masyarakat', alamat: 'Jl. Mawar No. 5', noTelpon: '081234567890' });
+            console.log('✅ Seed data created');
+        }
+    } catch (error) {
+        console.error('❌ Error seeding data:', error);
     }
 };
 
-sequelize.sync().then(async () => {
-    console.log('📦 SQLite database synced');
-    await seedData();
-    app.listen(PORT, () => console.log(`🚀 NawarYuk API running on port ${PORT}`));
-});
+// Inisialisasi Database
+const startServer = async () => {
+    try {
+        await sequelize.sync();
+        console.log('📦 SQLite database synced');
+        await seedData();
+        
+        // Cek apakah sedang berjalan di Vercel atau Lokal
+        // Vercel tidak butuh app.listen, tapi Lokal butuh.
+        if (process.env.NODE_ENV !== 'production' && !process.env.VERCEL) {
+            app.listen(PORT, () => console.log(`🚀 NawarYuk API running on port ${PORT}`));
+        }
+    } catch (error) {
+        console.error('❌ Database sync error:', error);
+    }
+};
+
+// Jalankan inisialisasi
+startServer();
+
+// PENTING: Export app agar Vercel bisa menjalankan ini sebagai Serverless Function
+module.exports = app;
